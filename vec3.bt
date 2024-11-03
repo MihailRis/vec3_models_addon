@@ -1,0 +1,70 @@
+//------------------------------------------------
+//--- 010 Editor v15.0.1 Binary Template
+//
+//      File: Binary model for VoxelEngine
+//   Authors: REDxEYE   
+//   Version: 1.0
+//   Purpose: 
+//  Category: 
+// File Mask: *.vec3
+//  ID Bytes: 00 00 56 45 43 33 00 00
+//   History: 
+//------------------------------------------------
+
+struct Header {
+    char ident[8];   // "\0\0VEC3\0\0"
+    uint16 version;  // current is 1
+    uint16 reserved; // 0x0000
+};
+
+enum <ubyte> AttributeType {
+    POSITION = 0,
+    UV,
+    NORMAL,
+    COLOR,
+};
+
+struct Material {
+    uint16 flags;
+    uint16 name_len;
+    char name[name_len];
+};
+
+struct VertexAttribute {
+    AttributeType type; // data type is infered from attribute type
+    uint8 flags;
+    uint32 size;
+    ubyte data[size]; // if compressed, first 4 bytes of compressed data is decompressed size
+};
+
+struct Mesh {
+    uint32 triangle_count; // number of mesh triangles
+    uint16 material_id;
+    uint16 flags;
+    uint16 attribute_count;
+    VertexAttribute attributes[attribute_count]<optimize=false>;
+    uint8 indices[triangle_count*3*attribute_count*2]; // if compressed, first 4 bytes of compressed data is compressed buffer size
+};
+
+struct vec3{
+     float x,y,z;
+};
+
+struct Model {
+	uint16 name_len;
+    vec3 origin;
+    uint32 mesh_count;
+    Mesh meshes[mesh_count]<optimize=false>;
+    char name[name_len];
+};
+
+struct Body {
+    uint16 material_count;
+    uint16 model_count;
+    Material materials[material_count]<optimize=false>;
+    Model models[model_count]<optimize=false>;
+};
+
+Header header;
+Body body;
+
