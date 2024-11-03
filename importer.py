@@ -5,6 +5,7 @@ from voxel_core_model.file_utils import Buffer
 from voxel_core_model.mesh_utils import add_uv_layer, add_custom_normals, add_vertex_color_layer, \
     get_or_create_material, add_material
 from voxel_core_model.model.body import load_model_from_buffer
+from voxel_core_model.model.material import MaterialFlags
 from voxel_core_model.model.vertex_attribute import VertexAttributeType
 
 DIRECTION_SWAP = np.asarray([1, -1, 1], np.float32)
@@ -53,6 +54,8 @@ def import_vec3(buffer: Buffer):
         for mesh in sub_model.meshes:
             material = model_materials[mesh.material_id]
             mat = get_or_create_material(material.name)
+            if material.flags & MaterialFlags.SHADELESS:
+                mat.shadeless = True
             mat_index = add_material(mat, mesh_obj)
             material_indices[poly_offset:poly_offset + mesh.indices.shape[0]] = mat_index
             poly_offset += mesh.indices.shape[0]

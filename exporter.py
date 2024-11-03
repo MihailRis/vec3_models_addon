@@ -103,7 +103,8 @@ def collect_meshes_data(obj: bpy.types.Object, depsgraph: Depsgraph, materials: 
     material_names = []
 
     for mat_id, mat_slot in enumerate(obj.material_slots):
-        mat_name = mat_slot.material.name if mat_slot.material else "NoMaterial"
+        slot_material = mat_slot.material
+        mat_name = slot_material.name if slot_material else "NoMaterial"
         material_names.append(mat_name)
 
         # Check if the material is already in the list, otherwise add it
@@ -112,7 +113,11 @@ def collect_meshes_data(obj: bpy.types.Object, depsgraph: Depsgraph, materials: 
             material_remap[mat_id] = emat_id
         else:
             material_remap[mat_id] = len(materials)
-            materials.append(Material(mat_name, MaterialFlags.NONE))
+            if slot_material.shadeless:
+                material_flags = MaterialFlags.SHADELESS
+            else:
+                material_flags = MaterialFlags.NONE
+            materials.append(Material(mat_name, material_flags))
 
     if not obj.material_slots:
         mat_name = "NoMaterial"

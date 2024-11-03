@@ -111,8 +111,24 @@ class VOXELCORE_OT_VEC3Export(ExportOperatorHelper):
             write_model_to_buffer(f, body)
         return {'FINISHED'}
 
+class MATERIAL_PT_VoxelEngineProperties(bpy.types.Panel):
+    bl_label = "Voxel Engine Material Properties"
+    bl_idname = "voxelcore.material_properties"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'material'
 
-classes = [VOXELCORE_OT_VEC3Import, VOXELCORE_OT_VEC3Export, ]
+    @classmethod
+    def poll(cls, context):
+        return context.material is not None
+
+    def draw(self, context):
+        layout = self.layout
+        material = context.material
+        layout.prop(material, "shadeless")
+
+
+classes = [VOXELCORE_OT_VEC3Import, VOXELCORE_OT_VEC3Export, MATERIAL_PT_VoxelEngineProperties]
 
 register_, unregister_ = bpy.utils.register_classes_factory(classes)
 
@@ -127,6 +143,10 @@ def menu_export(self, context):
 
 def register():
     register_()
+    bpy.types.Material.shadeless = bpy.props.BoolProperty(
+        name="Shadeless",
+        default=False
+    )
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_export)
 
@@ -134,4 +154,5 @@ def register():
 def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
     bpy.types.TOPBAR_MT_file_export.remove(menu_export)
+    del bpy.types.Material.shadeless
     unregister_()
