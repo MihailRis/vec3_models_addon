@@ -142,9 +142,9 @@ def collect_meshes_data(obj: bpy.types.Object, depsgraph: Depsgraph, materials: 
     uv_data.foreach_get("uv", uvs.ravel())
     mesh.loops.foreach_get("vertex_index", vertex_indices.ravel())
 
-    output_positions = np.zeros((len(mesh.loop_triangles), 3), np.float32)
-    output_normals = np.zeros((len(mesh.loop_triangles), 3), np.float32)
-    output_uvs = np.zeros((len(mesh.loop_triangles), 2), np.float32)
+    output_positions = np.zeros((len(mesh.vertices)*8, 3), np.float32)
+    output_normals = np.zeros((len(mesh.vertices)*8, 3), np.float32)
+    output_uvs = np.zeros((len(mesh.vertices)*8, 2), np.float32)
 
     for loop_tri in mesh.loop_triangles:
         for i, loop_index in enumerate(loop_tri.loops):
