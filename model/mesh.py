@@ -1,4 +1,4 @@
-import zlib
+import gzip
 from dataclasses import dataclass
 from enum import IntFlag
 
@@ -10,7 +10,7 @@ from voxel_core_model.model.vertex_attribute import VertexAttributeType, VertexA
 
 class MeshFlags(IntFlag):
     NONE = 0
-    ZLIB = 1
+    GZIP = 1
     USHORT_INDICES = 2
 
 
@@ -28,9 +28,9 @@ class Mesh:
         expected_buffer_size = triangle_count * 3 * attribute_count
         if flags & MeshFlags.USHORT_INDICES:
             expected_buffer_size *= 2
-        if flags & MeshFlags.ZLIB:
+        if flags & MeshFlags.GZIP:
             compressed_size = buffer.read_uint32()
-            data = zlib.decompress(buffer.read(compressed_size))
+            data = gzip.decompress(buffer.read(compressed_size))
             if len(data) != expected_buffer_size:
                 raise ValueError(
                     "Decompressed data size does not match: {}!={}".format(len(data), expected_buffer_size))
@@ -48,8 +48,8 @@ class Mesh:
         for attribute in self.attributes:
             attribute.to_buffer(buffer)
 
-        if self.flags & MeshFlags.ZLIB:
-            data = zlib.compress(self.indices.tobytes())
+        if self.flags & MeshFlags.GZIP:
+            data = gzip.compress(self.indices.tobytes())
             buffer.write_uint32(len(data))
             buffer.write(data)
         else:

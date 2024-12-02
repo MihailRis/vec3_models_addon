@@ -3,6 +3,7 @@ from pathlib import Path
 
 import bpy
 from bpy.props import StringProperty, CollectionProperty, BoolProperty
+from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 if "voxel_core_model" not in sys.modules:
     sys.modules['voxel_core_model'] = sys.modules[Path(__file__).parent.stem]
@@ -27,7 +28,7 @@ bl_info = {
 class OperatorHelper(bpy.types.Operator):
     if is_blender_4_1():
         directory: StringProperty(subtype='FILE_PATH', options={'SKIP_SAVE', 'HIDDEN'})
-    filepath: StringProperty(subtype='FILE_PATH', )
+    filepath: StringProperty(subtype='FILE_PATH', default="model.vec3")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
     def get_directory(self):
@@ -77,7 +78,7 @@ class ExportOperatorHelper(OperatorHelper):
         return {'RUNNING_MODAL'}
 
 
-class VOXELCORE_OT_VEC3Import(ImportOperatorHelper):
+class VOXELCORE_OT_VEC3Import(ImportOperatorHelper, ImportHelper):
     """Load VC vec3 models"""
     bl_idname = "voxelcore.import_vec3"
     bl_label = "Import Voxel Core vec3 model"
@@ -95,21 +96,33 @@ class VOXELCORE_OT_VEC3Import(ImportOperatorHelper):
         return {'FINISHED'}
 
 
-class VOXELCORE_OT_VEC3Export(ExportOperatorHelper):
+class VOXELCORE_OT_VEC3Export(ExportOperatorHelper, ExportHelper):
     """Save VOXELCORE vec3 models"""
     bl_idname = "voxelcore.export_vec3"
     bl_label = "Export Voxel Core vec3 model"
-    bl_options = {'UNDO'}
+    bl_options = {'UNDO', 'PRESET'}
+
+    # ExportHelper mixin class uses this
+    filename_ext = ".vec3"
 
     filter_glob: StringProperty(default="*.vec3", options={'HIDDEN'})
 
-    compress: BoolProperty(default=False, name="Compress", description="Compress mesh data with Zlib")
+    compress: BoolProperty(default=False, name="Compress", description="Compress mesh data with GZIP")
+
+    def invoke(self, context, event):
+        # Set a default filepath
+        self.filepath = bpy.path.ensure_ext(bpy.data.filepath or "model", ".vec3")
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
+        if not self.filepath:
+            raise Exception("No filename provided")
         with FileBuffer(self.filepath, 'wb') as f:
             body = export_vec3(context, self.compress)
             write_model_to_buffer(f, body)
         return {'FINISHED'}
+
 
 class MATERIAL_PT_VoxelEngineProperties(bpy.types.Panel):
     bl_label = "Voxel Engine Material Properties"

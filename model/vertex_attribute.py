@@ -1,4 +1,4 @@
-import zlib
+import gzip
 from dataclasses import dataclass
 from enum import IntFlag, IntEnum
 
@@ -9,7 +9,7 @@ from voxel_core_model.file_utils import Buffer
 
 class VertexAttributeFlags(IntFlag):
     NONE = 0
-    ZLIB = 1
+    GZIP = 1
 
 
 class VertexAttributeType(IntEnum):
@@ -43,9 +43,9 @@ class VertexAttribute:
         flags = VertexAttributeFlags(buffer.read_uint8())
         size = buffer.read_uint32()
 
-        if flags & VertexAttributeFlags.ZLIB:
+        if flags & VertexAttributeFlags.GZIP:
             decompressed_size = buffer.read_uint32()
-            data = zlib.decompress(buffer.read(size - 4))
+            data = gzip.decompress(buffer.read(size - 4))
             if len(data) != decompressed_size:
                 raise ValueError("Decompressed data size does not match: {}!={}".format(len(data), decompressed_size))
         else:
@@ -55,8 +55,8 @@ class VertexAttribute:
     def to_buffer(self, buffer: Buffer):
         buffer.write_fmt("2B", self.type, self.flags)
 
-        if self.flags & VertexAttributeFlags.ZLIB:
-            data = zlib.compress(self.data.tobytes())
+        if self.flags & VertexAttributeFlags.GZIP:
+            data = gzip.compress(self.data.tobytes())
             buffer.write_uint32(len(data) + 4)
             buffer.write_uint32(self.data.nbytes)
             buffer.write(data)

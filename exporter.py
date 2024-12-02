@@ -52,7 +52,7 @@ def convert_to_vec3_meshes(mesh_data: IntermediateMesh, materials: list[Material
         remapped_polygons = inverse_indices.reshape(material_polygons.shape)
         attribute_flags = VertexAttributeFlags.NONE
         if compress:
-            attribute_flags |= VertexAttributeFlags.ZLIB
+            attribute_flags |= VertexAttributeFlags.GZIP
 
         attributes = [
             VertexAttribute(VertexAttributeType.POSITION, attribute_flags, unique_positions),
@@ -77,7 +77,7 @@ def convert_to_vec3_meshes(mesh_data: IntermediateMesh, materials: list[Material
 
         mesh_flags = MeshFlags.NONE
         if compress:
-            mesh_flags |= MeshFlags.ZLIB
+            mesh_flags |= MeshFlags.GZIP
         if use_short_indices:
             mesh_flags |= MeshFlags.USHORT_INDICES
 
