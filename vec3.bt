@@ -40,10 +40,20 @@ struct VertexAttribute {
 struct Mesh {
     uint32 triangle_count; // number of mesh triangles
     uint16 material_id;
-    uint16 flags;
+    uint16 gzip_compressed:1;
+    uint16 uint16_indices:1;
+    uint16 flags_pad:14;
     uint16 attribute_count;
     VertexAttribute attributes[attribute_count]<optimize=false>;
-    uint8 indices[triangle_count*3*attribute_count*2]; // if compressed, first 4 bytes of compressed data is compressed buffer size
+    if (gzip_compressed){
+        uint32 compressed_size;
+        uint8 compressed_indices[compressed_size];   
+    }else{
+        if(uint16_indices)
+            uint16 indices[triangle_count*3*attribute_count]; 
+        else
+            uint8 indices[triangle_count*3*attribute_count]; 
+    }
 };
 
 struct vec3{

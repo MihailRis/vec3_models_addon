@@ -97,8 +97,6 @@ def collect_meshes_data(obj: bpy.types.Object, depsgraph: Depsgraph, materials: 
 
     mesh.calc_tangents(uvmap=uv_layer.name)
     mesh.calc_loop_triangles()
-    vert_map = {}
-    index_counter = 0
     material_remap = np.zeros(len(obj.material_slots), np.uint32)
     material_names = []
 
@@ -107,7 +105,6 @@ def collect_meshes_data(obj: bpy.types.Object, depsgraph: Depsgraph, materials: 
         mat_name = slot_material.name if slot_material else "NoMaterial"
         material_names.append(mat_name)
 
-        # Check if the material is already in the list, otherwise add it
         emat_id = next((i for i, material in enumerate(materials) if material.name == mat_name), None)
         if emat_id is not None:
             material_remap[mat_id] = emat_id
@@ -130,8 +127,6 @@ def collect_meshes_data(obj: bpy.types.Object, depsgraph: Depsgraph, materials: 
 
     uv_data = mesh.uv_layers.active.data
 
-    polygons = np.zeros((len(mesh.loop_triangles), 3), np.uint32)
-    material_ids = np.zeros(len(mesh.loop_triangles), np.uint32)
     vertices = np.zeros((len(mesh.vertices), 3), np.float32)
     normals = np.zeros((len(mesh.loops), 3), np.float32)
     uvs = np.zeros((len(mesh.loop_triangles) * 3, 2), np.float32)
@@ -142,44 +137,44 @@ def collect_meshes_data(obj: bpy.types.Object, depsgraph: Depsgraph, materials: 
     uv_data.foreach_get("uv", uvs.ravel())
     mesh.loops.foreach_get("vertex_index", vertex_indices.ravel())
 
-    output_positions = np.zeros((len(mesh.vertices)*8, 3), np.float32)
-    output_normals = np.zeros((len(mesh.vertices)*8, 3), np.float32)
-    output_uvs = np.zeros((len(mesh.vertices)*8, 2), np.float32)
+    n_tris = len(mesh.loop_triangles)
+    n_loops = n_tris * 3
 
-    for loop_tri in mesh.loop_triangles:
-        for i, loop_index in enumerate(loop_tri.loops):
-            vertex = vertices[vertex_indices[loop_index]]
-            normal = normals[loop_index]
-            uv = uvs[loop_index]
+    loops = np.empty((n_loops,), dtype=np.int32)
+    for t, tri in enumerate(mesh.loop_triangles):
+        loops[3 * t: 3 * t + 3] = tri.loops
 
-            vert_key = hash((
-                vertex[0], vertex[1], vertex[2],
-                normal[0], normal[1], normal[2],
-                uv[0], uv[1]
-            ))
+    pos = vertices[vertex_indices[loops]]
+    norm = normals[loops]
+    uv = uvs[loops]
 
-            if vert_key in vert_map:
-                idx = vert_map[vert_key]
-            else:
-                idx = index_counter
-                index_counter += 1
-                vert_map[vert_key] = idx
-                output_positions[idx] = vertex
-                output_normals[idx] = normal
-                output_uvs[idx] = uv
-            polygons[loop_tri.index, i] = idx
-            material_ids[loop_tri.index] = loop_tri.material_index
+    data = np.hstack((pos, norm, uv))
+
+    dt = np.dtype([('row', data.dtype, data.shape[1])])
+    recs = data.view(dt).ravel()
+
+    uniq_recs, inv = np.unique(recs, return_inverse=True)
+    uniq = uniq_recs['row']
+
+    output_positions = uniq[:, :3]
+    output_normals = uniq[:, 3:6]
+    output_uvs = uniq[:, 6:8]
+
+    polygons = inv.reshape(n_tris, 3).astype(np.uint32)
+    material_ids = np.array(
+        [tri.material_index for tri in mesh.loop_triangles],
+        dtype=np.uint32
+    )
 
     obj_eval.to_mesh_clear()
     return IntermediateMesh(
-        output_positions[:index_counter],
-        output_normals[:index_counter],
-        output_uvs[:index_counter],
+        output_positions,
+        output_normals,
+        output_uvs,
         polygons,
         material_ids,
         material_names
     )
-
 
 def export_vec3(context: bpy.context, compress=False):
     depsgraph: Depsgraph = context.evaluated_depsgraph_get()
